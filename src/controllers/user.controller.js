@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 import { config } from 'dotenv';
-import nodemailer from '../helpers/nodemailer.helper';
 import {
   comparePassword,
   generateToken,
@@ -9,7 +8,6 @@ import {
 } from '../helpers/user.helpers';
 import CardService from '../services/card.service';
 import UserService from '../services/user.service';
-import verifyEmailMessage from '../utils/verifyEmailMessage.util';
 
 config();
 
@@ -21,37 +19,52 @@ export default class UserController {
 
   async createMember(req, res) {
     try {
-      const { firstName, lastName, userName, email, password, phone } =
-        req.body;
+      const {
+        firstName,
+        lastName,
+        userName,
+        email,
+        password,
+        phone,
+        gender,
+        occupation,
+        birthDate
+      } = req.body;
       const name = `${firstName.trim()} ${lastName.trim()}`;
-      console.log(name, 'name ,,,,,,,,,,,,,,,,');
 
       // save the new member
-      const member = await this.userService.createMember(
-        {
-          name,
-          email,
-          password: hashPassword(password),
-          userName,
-          phone
-        },
-      );
+      const member = await this.userService.createMember({
+        name,
+        email,
+        password: hashPassword(password),
+        userName,
+        phone,
+        gender,
+        occupation,
+        birthDate
+      });
 
       // create a card for the new member
       await this.cardService.createCard({ member_id: member.id });
 
-      const token = generateToken({ id: member.id, type: member.type }, '7d');
-      const text = `
-         Hello, thanks for registering on Barefoot Nomad site.
-         Please copy and paste the address below into address bar to verify your account.
-         ${process.env.BASE_URL}/api/v1/users/verify-email/${token}
-         `;
-      const code = verifyEmailMessage(token);
-      await nodemailer(member.email, 'Email Verification', text, code);
+      return res.status(201).json({
+        message: 'User registered successfully'
+      });
+    } catch (error) {
+      console.log(error, 'error, ............................');
+      return res.status(500).json({
+        message: 'An Unexpected error occurred',
+        error
+      });
+    }
+  }
+
+  async updateMember(req, res) {
+    try {
+      const member = await this.userService.updateMember(req);
 
       return res.status(201).json({
-        message:
-          'User registered successfully! Please check your email for verification.'
+        message: 'User Updated successfully'
       });
     } catch (error) {
       console.log(error, 'error, ............................');
@@ -106,7 +119,7 @@ export default class UserController {
 
       const member = await this.userService.getMember(userInfo.id);
 
-      await this.userService.updateMember(
+      await this.userService.updateMemberParts(
         { isVerified: true },
         { where: { id: member.id } }
       );
@@ -128,6 +141,7 @@ export default class UserController {
         data: { member }
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         message: 'An Unexpected error occurred',
         error

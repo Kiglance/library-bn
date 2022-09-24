@@ -1,25 +1,23 @@
 module.exports = {
   async up(queryInterface, DataTypes) {
-    await queryInterface.createTable('FinePayments', {
+    await queryInterface.createTable('MissedBooks', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: DataTypes.INTEGER
       },
-      amount: {
-        type: DataTypes.DOUBLE,
+      period: {
+        type: DataTypes.INTEGER,
         allowNull: false
       },
-      payment_date: {
-        type: DataTypes.DATE,
+      payed: {
+        type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue() {
-          return new Date();
-        }
+        defaultValue: false
       },
-      member_id: {
-        type: DataTypes.STRING,
+      check_out_id: {
+        type: DataTypes.INTEGER,
         allowNull: false
       },
       createdAt: {
@@ -33,6 +31,6 @@ module.exports = {
     });
   },
   async down(queryInterface) {
-    await queryInterface.dropTable('FinePayments');
+    await queryInterface.dropTable('MissedBooks');
   }
 };

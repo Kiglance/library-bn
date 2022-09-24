@@ -1,11 +1,41 @@
 /* eslint-disable no-unused-vars */
-import { sub } from 'date-fns';
-import { Op } from 'sequelize';
 import { CheckOut, Librarian, Member, Reservation } from '../database/models';
+import { hashPassword } from '../helpers/user.helpers';
 
 export default class UserService {
   async createMember(data) {
-    return Member.create(data);
+    return Member.create({ ...data, isVerified: true });
+  }
+
+  async updateMember(req) {
+    const {
+      firstName,
+      lastName,
+      userName,
+      password,
+      phone,
+      gender,
+      occupation,
+      birthDate
+    } = req.body;
+    const { id } = req.user;
+
+    const member = await Member.findByPk(id);
+
+    member.name = firstName
+      ? [firstName, member.name.split(' ')[1]].join(' ')
+      : member.name;
+    member.name = lastName
+      ? [member.name.split(' ')[0], lastName].join(' ')
+      : member.name;
+    member.userName = userName || member.userName;
+    member.password = password ? hashPassword(password) : member.password;
+    member.phone = phone || member.phone;
+    member.gender = gender || member.gender;
+    member.occupation = occupation || member.occupation;
+    member.birthDate = birthDate || member.birthDate;
+
+    return member.save();
   }
 
   async memberLogin(userName) {
@@ -14,7 +44,7 @@ export default class UserService {
     });
   }
 
-  async updateMember(updates, where) {
+  async updateMemberParts(updates, where) {
     return Member.update(updates, where);
   }
 
@@ -25,21 +55,7 @@ export default class UserService {
         {
           model: CheckOut,
           as: 'check_out_members',
-          where: {
-            [Op.or]: [
-              {
-                returned_date: null
-              },
-              {
-                returned_date: {
-                  [Op.gt]: {
-                    [Op.col]: 'deadline'
-                  }
-                }
-              }
-            ]
-          },
-          include: 'check_out_books',
+          include: ['check_out_books', 'missed_book'],
           required: false
         },
         {
@@ -65,14 +81,7 @@ export default class UserService {
         {
           model: CheckOut,
           as: 'check_out_members',
-          where: {
-            // returns all the check outs made that haven't yet been returned or have been returned no later than year
-            [Op.or]: [
-              { returned_date: { [Op.gte]: sub(new Date(), { years: 1 }) } },
-              { returned_date: { [Op.is]: null } }
-            ]
-          },
-          include: 'check_out_books',
+          include: ['check_out_books', 'missed_book'],
           required: false
         }
       ]

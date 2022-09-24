@@ -49,11 +49,9 @@ module.exports = (sequelize, DataTypes) => {
       password: { type: DataTypes.STRING, allowNull: false },
       email: { type: DataTypes.STRING, allowNull: false, unique: true },
       phone: { type: DataTypes.STRING },
-      missed_deadline: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0
-      },
+      gender: { type: DataTypes.STRING, allowNull: false },
+      occupation: { type: DataTypes.STRING, allowNull: false },
+      birthDate: { type: DataTypes.DATE, allowNull: false },
       isVerified: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

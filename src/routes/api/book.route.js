@@ -74,7 +74,7 @@ routes.post(
   checkCheckedOutCounts,
   checkBookCheckedOut,
   async (req, res) => {
-    await new BookController().chechOutBook(req, res);
+    await new BookController().checkOutBook(req, res);
   }
 );
 

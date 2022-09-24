@@ -12,7 +12,8 @@ import {
   loginLibrarianValidation,
   loginMemberValidation,
   registerMemberValidation,
-  updateCardStatusValidation
+  updateCardStatusValidation,
+  updateMemberValidation
 } from '../../validations/user.validation';
 
 const routes = express.Router();
@@ -32,6 +33,27 @@ routes.post(
   checkEmailExist,
   async (req, res) => {
     await new UserController().createMember(req, res);
+  }
+);
+
+routes.post(
+  '/members/register/librarian',
+  checkLoggedIn,
+  isLibrarian,
+  registerMemberValidation,
+  checkEmailExist,
+  async (req, res) => {
+    await new UserController().createMember(req, res);
+  }
+);
+
+routes.patch(
+  '/members/update',
+  updateMemberValidation,
+  checkLoggedIn,
+  isMember,
+  async (req, res) => {
+    await new UserController().updateMember(req, res);
   }
 );
 

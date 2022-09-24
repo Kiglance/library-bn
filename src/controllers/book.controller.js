@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
-import { Book, Member } from '../database/models';
+import { differenceInDays } from 'date-fns';
+import { Book, Member, Reservation } from '../database/models';
 import { deleteImage, uploadImage } from '../helpers/cloudinary.helpers';
 import BookService from '../services/book.service';
 
@@ -134,11 +135,11 @@ export default class BookController {
   }
 
   // Check outs controllers
-  async chechOutBook(req, res) {
+  async checkOutBook(req, res) {
     try {
       const { id: bookId } = req.params;
 
-      const bookCheckOut = await this.bookService.chechOutBook(
+      const bookCheckOut = await this.bookService.checkOutBook(
         parseInt(bookId, 10),
         req.user.id
       );
@@ -182,6 +183,14 @@ export default class BookController {
     try {
       const { id: bookId } = req.params;
 
+      const reserv = await Reservation.findOne({ where: { book_id: bookId } });
+
+      if (reserv) {
+        return res.status(400).json({
+          message: 'Request refused, The book is already reserved'
+        });
+      }
+
       const bookExtended = await this.bookService.extendBookDeadline(
         req.book.check_out_books[0].deadline,
         parseInt(bookId, 10),
@@ -212,12 +221,12 @@ export default class BookController {
       const { id: bookId } = req.params;
       const { book_reservations } = req.book;
 
-      const bookReturned = await this.bookService.returnBook(
+      const CheckOutReturned = await this.bookService.returnBook(
         bookId,
         req.user.id
       );
 
-      if (bookReturned[0] > 0) {
+      if (CheckOutReturned[0] > 0) {
         if (book_reservations[0]) {
           /// check if  there is a reservation and check it out
           const deletedResev = await this.bookService.deleteBookReservation(
@@ -225,29 +234,36 @@ export default class BookController {
             req.user.id
           );
           if (deletedResev === 1) {
-            await this.bookService.chechOutBook(
+            await this.bookService.checkOutBook(
               bookId,
               book_reservations[0].member_id
             );
           }
         }
 
-        if (bookReturned[1][0].returned_date > bookReturned[1][0].deadline) {
+        // Check if a book deadline was missed and caclulate fine and save the record
+        if (
+          differenceInDays(
+            CheckOutReturned[1][0].returned_date,
+            CheckOutReturned[1][0].deadline
+          ) > 0
+        ) {
           await Member.update(
             { fine: req.user.fine + 10 },
             { where: { id: req.user.id } }
           );
+          await this.bookService.recordMissedBook(CheckOutReturned[1][0]);
         }
       }
 
       return res.status(200).json(
-        bookReturned[0] <= 0
+        CheckOutReturned[0] <= 0
           ? {
               message: 'Book not returned'
             }
           : {
               message: 'Book returned successfully',
-              data: { checkOut: bookReturned[1][0] }
+              data: { checkOut: CheckOutReturned[1][0] }
             }
       );
     } catch (error) {
